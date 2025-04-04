@@ -1,14 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Dec 30 18:19:16 2024
-
-@author: EndorPC
-"""
-
 import os
 import time
 import requests
-
 
 user_desktop = os.path.expanduser("~/Desktop")
 input_folder = os.path.join(user_desktop, "articoli")
@@ -22,7 +14,7 @@ def extract_with_grobid(file_path):
         if response.status_code == 200:
             return response.text
         else:
-            print(f"Errore HTTP {response.status_code} per il file {file_path}")
+            print(f"HTTP error {response.status_code} for file {file_path}")
             return None
 
 def parse_metadata(grobid_output):
@@ -35,7 +27,7 @@ def parse_metadata(grobid_output):
 
         
         title_element = root.find('.//tei:title[@type="main"]', ns)
-        title = title_element.text.strip() if title_element is not None and title_element.text else "Titolo non disponibile"
+        title = title_element.text.strip() if title_element is not None and title_element.text else "Title not available"
 
         
         authors = []
@@ -54,8 +46,8 @@ def parse_metadata(grobid_output):
         return title, authors
 
     except ET.ParseError as e:
-        print(f"Errore durante il parsing XML: {e}")
-        return "Titolo non disponibile", []
+        print(f"Error while parsing XML: {e}")
+        return "Title not available", []
 
 def main():
     start_time = time.time()
@@ -63,7 +55,7 @@ def main():
     pdf_count = 0
 
     if not os.path.exists(input_folder):
-        print(f"La cartella {input_folder} non esiste.")
+        print(f"Folder {input_folder} do not exist.")
         return
 
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -71,32 +63,32 @@ def main():
             if file_name.endswith('.pdf'):
                 pdf_count += 1
                 pdf_path = os.path.join(input_folder, file_name)
-                print(f"Analisi del file: {file_name}")
+                print(f"File Analysis: {file_name}")
 
                 grobid_output = extract_with_grobid(pdf_path)
                 if grobid_output:
                     title, authors = parse_metadata(grobid_output)
                 else:
-                    title, authors = "Titolo non disponibile", []
+                    title, authors = "Title not available", []
 
                 f.write(f"{pdf_count}) {file_name}\n")
                 f.write(f"Title: {title}\n")
-                f.write(f"Authors: {', '.join(authors) if authors else 'Non individuati'}\n\n")
+                f.write(f"Authors: {', '.join(authors) if authors else 'Not identified'}\n\n")
 
                 if not authors:
                     no_authors.append(file_name)
 
         
-        f.write("\nRiepilogo:\n")
-        f.write(f"Totale PDF analizzati: {pdf_count}\n")
-        f.write(f"PDF senza autori identificati: {len(no_authors)}\n")
+        f.write("\nSummary:\n")
+        f.write(f"Total PDFs analyzed: {pdf_count}\n")
+        f.write(f"PDF without identified authors: {len(no_authors)}\n")
         if no_authors:
-            f.write("Elenco dei PDF senza autori:\n")
+            f.write("List of PDFs without authors:\n")
             for file_name in no_authors:
                 f.write(f"- {file_name}\n")
 
     end_time = time.time()
-    print(f"Tempo di esecuzione: {end_time - start_time:.2f} secondi")
+    print(f"Execution time: {end_time - start_time:.2f} seconds")
 
 if __name__ == "__main__":
     main()

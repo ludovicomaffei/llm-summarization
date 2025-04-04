@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Optimized Summarization Benchmark for BART, T5, Deepseek, and LLaMA 3 on CNN/DailyMail Articles
-(GPU-Accelerated + Ollama Integration)
-"""
-
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import time
@@ -28,18 +22,18 @@ print(f"🚀 Using Device: {device}")
 
 nltk.download('wordnet')
 
-print("🔄 Loading CNN/DailyMail dataset...")
+print("Loading CNN/DailyMail dataset...")
 dataset = load_dataset("cnn_dailymail", "3.0.0")["train"]  
 num_papers = 250  
 articles = dataset.select(range(num_papers))  
-print(f"✅ Loaded {num_papers} articles from CNN/DailyMail dataset.")
+print(f"Loaded {num_papers} articles from CNN/DailyMail dataset.")
 
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 csv_file = os.path.join(desktop_path, "Summarization_Results.csv")
 output_file = os.path.join(desktop_path, "summaries.txt")
 
 def load_model(model_name, tokenizer_name, model_type="bart"):
-    print(f"🔄 Loading {model_name}...")
+    print(f"Loading {model_name}...")
     if model_type == "t5":
         tokenizer = T5Tokenizer.from_pretrained(tokenizer_name)
         model = T5ForConditionalGeneration.from_pretrained(model_name).to(device)
@@ -47,22 +41,22 @@ def load_model(model_name, tokenizer_name, model_type="bart"):
         tokenizer = BartTokenizer.from_pretrained(tokenizer_name)
         model = BartForConditionalGeneration.from_pretrained(model_name).to(device)
     model.eval()
-    print(f"✅ {model_name} loaded successfully.")
+    print(f"{model_name} loaded successfully.")
     return model, tokenizer
 
-print("🔄 Loading Models...")
+print("Loading Models...")
 bart_model, bart_tokenizer = load_model("facebook/bart-large-cnn", "facebook/bart-large-cnn", model_type="bart")
 t5_model, t5_tokenizer = load_model("t5-large", "t5-large", model_type="t5")
-print("✅ Models Loaded.")
+print("Models Loaded.")
 
 def summarize(text, model, tokenizer, model_name, max_new_tokens=200):
     """Generates a summary using a local model"""
     if not text.strip():
-        print(f"⚠️ Skipping empty input for {model_name}.")
+        print(f"Skipping empty input for {model_name}.")
         return "Empty input", 0.0
 
     input_ids = tokenizer(text, return_tensors="pt", max_length=1024, truncation=True).input_ids.to(device)
-    print(f"📝 Generating summary with {model_name}...")
+    print(f"Generating summary with {model_name}...")
     start_time = time.time()
     with torch.no_grad():
         summary_ids = model.generate(
@@ -75,59 +69,59 @@ def summarize(text, model, tokenizer, model_name, max_new_tokens=200):
         )
     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     elapsed_time = time.time() - start_time
-    print(f"✅ {model_name} summary generated in {elapsed_time:.2f} seconds.")
+    print(f"{model_name} summary generated in {elapsed_time:.2f} seconds.")
     return summary, elapsed_time
 
 def summarize_with_ollama(text, max_length=200):
     """Generates a summary using LLaMA 3 via Ollama API"""
     data = {
         "model": "llama3:latest",
-        "prompt": f"Riassumi il seguente testo in {max_length} parole:\n{text}",
+        "prompt": f"Summarize the following text in {max_length} words:\n{text}",
         "stream": False
     }
     max_retries = 3
     for attempt in range(1, max_retries + 1):
-        print(f"🦙 [OLLAMA] Sending request to Ollama (Attempt {attempt}/{max_retries})...")
+        print(f"[OLLAMA] Sending request to Ollama (Attempt {attempt}/{max_retries})...")
         start_time = time.time()
         try:
             response = requests.post("http://127.0.0.1:11434/api/generate", json=data, timeout=60)
             if response.status_code == 200:
                 elapsed_time = time.time() - start_time
-                print(f"✅ LLaMA 3 summary generated in {elapsed_time:.2f} seconds.")
-                return response.json().get("response", "Errore nel parsing della risposta").strip(), elapsed_time
+                print(f"LLaMA 3 summary generated in {elapsed_time:.2f} seconds.")
+                return response.json().get("response", "Error parsing response").strip(), elapsed_time
             else:
-                print(f"⚠️ [OLLAMA] Error {response.status_code}: {response.text}")
+                print(f"[OLLAMA] Error {response.status_code}: {response.text}")
         except requests.exceptions.RequestException as e:
-            print(f"⚠️ [OLLAMA] Connection failed: {e}")
-    print(f"🚨 [OLLAMA] Summary generation failed after {max_retries} attempts.")
-    return "Errore con Ollama", 0.0
+            print(f"[OLLAMA] Connection failed: {e}")
+    print(f"[OLLAMA] Summary generation failed after {max_retries} attempts.")
+    return "Error with Ollama", 0.0
 
 def summarize_with_deepseek(text, max_length=200):
     """Generates a summary using Deepseek via Ollama API"""
     data = {
         "model": "deepseek-r1:8b",  
-        "prompt": f"Riassumi in {max_length} parole il seguente testo: {text}",
+        "prompt": f"Summarize the following text in {max_length} words: {text}",
         "stream": False
     }
     max_retries = 3
     for attempt in range(1, max_retries + 1):
-        print(f"🦙 [DEEPSEEK] Sending request to Deepseek (Attempt {attempt}/{max_retries})...")
+        print(f"[DEEPSEEK] Sending request to Deepseek (Attempt {attempt}/{max_retries})...")
         start_time = time.time()
         try:
             response = requests.post("http://127.0.0.1:11434/api/generate", json=data, timeout=60)
             if response.status_code == 200:
                 elapsed_time = time.time() - start_time
-                print(f"✅ Deepseek summary generated in {elapsed_time:.2f} seconds.")
-                return response.json().get("response", "Errore nel parsing della risposta").strip(), elapsed_time
+                print(f"Deepseek summary generated in {elapsed_time:.2f} seconds.")
+                return response.json().get("response", "Error parsing response").strip(), elapsed_time
             elif response.status_code == 404:
-                print("⚠️ [DEEPSEEK] Errore 404: Il modello 'deepseek-r1:8b' non è stato trovato. Assicurati di averlo scaricato correttamente.")
+                print("[DEEPSEEK] Error 404: The template 'deepseek-r1:8b' was not found. Make sure you downloaded it correctly.")
                 break
             else:
-                print(f"⚠️ [DEEPSEEK] Error {response.status_code}: {response.text}")
+                print(f"[DEEPSEEK] Error {response.status_code}: {response.text}")
         except requests.exceptions.RequestException as e:
-            print(f"⚠️ [DEEPSEEK] Connection failed: {e}")
-    print(f"🚨 [DEEPSEEK] Summary generation failed after {max_retries} attempts.")
-    return "Errore con Deepseek", 0.0
+            print(f"[DEEPSEEK] Connection failed: {e}")
+    print(f"[DEEPSEEK] Summary generation failed after {max_retries} attempts.")
+    return "Error with Deepseek", 0.0
 
 results = []
 scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
@@ -140,10 +134,10 @@ for i in range(num_papers):
     reference_summary = dataset[i]['highlights'].strip()
     
     if not full_paper:
-        print(f"⚠️ Articolo {i+1} vuoto. Skipping.")
+        print(f"Article {i+1} empty. Skipping.")
         continue
     if not reference_summary:
-        print(f"⚠️ Nessun riferimento (highlight) per l'articolo {i+1}. Skipping.")
+        print(f"No highlight for item {i+1}. Skipping.")
         continue
 
     print(f"\n📌 Processing Article {i+1}/{num_papers}...")
@@ -207,7 +201,7 @@ print("\n📊 Summarization Performance Table:")
 print(df_avg)
 
 total_time = time.time() - start_total
-print(f"\n⏱ Tempo totale di esecuzione: {total_time:.2f} secondi.")
+print(f"\n⏱ Total execution time: {total_time:.2f} seconds.")
 
 with open(output_file, "w", encoding="utf-8") as f:
     for model in model_entries:
@@ -242,4 +236,4 @@ with open(output_file, "w", encoding="utf-8") as f:
         
         f.write("\n" + "="*50 + "\n\n")
 
-print(f"\n✅ File di output generato: {output_file}")
+print(f"\nGenerated output file: {output_file}")

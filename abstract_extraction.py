@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Dec  9 17:03:55 2024
-
-@author: EndorPC
-"""
-
 import os
 import time
 from tika import parser
